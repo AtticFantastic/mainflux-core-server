@@ -7,7 +7,16 @@ import(
 
     "github.com/satori/go.uuid"
     "gopkg.in/mgo.v2/bson"
+    "github.com/xeipuuv/gojsonschema"
 )
+
+type SenML struct {
+    Bt int `json: "bt"`
+    Bn string `json: "bn"`
+    Bu string `json: "bu"`
+    Ver int `json: "ver"`
+    E []map[string]interface{} `json: "e"`
+}
 
 type Channel struct {
     Id string   `json: "id"`
@@ -15,11 +24,7 @@ type Channel struct {
     Created string `json: "created"`
     Updated string `json: "updated"`
 
-    Bt int `json: "bt"`
-    Bn string `json: "bn"`
-    Bu string `json: "bu"`
-    Ver int `json: "ver"`
-    E []map[string]interface{} `json: "e"`
+    Ts SenML `json: "ts"`
 
     Msg map[string]interface{} `json: "msg"`
 
@@ -28,32 +33,67 @@ type Channel struct {
 }
 
 
-
 /** == Functions == */
 
-/**
-func insertTs(id string, ts map[string]interface{}) string {
-    // Insert in SML in Influx
-    // SML can contain several datapoints
+func insertTs(id string, ts SenML) string {
+    // Insert in SenML in Influx
+    // SenML can contain several datapoints
     // and can target different tags
+
+    // Loop here for each attribute
+    for k, v := range ts.E {
+        tags := map[string]string{
+            "attribute" : ts.E[k]["n"],
+        }
+
+        // Examine if "v" exists, then "sv", then "bv"
+        var field map[string]interface{}
+        if (v["v"]){
+            field["value"] = v["v"]
+        } else if (v["sv"]) {
+            field["value"] = v["sv"]
+        } else if (v["bv"]) {
+            field["value"] = v["bv"]
+        }
+
+        pt, err := ic.NewPoint(id + "-ts", tags, field, ts.Bt + v["t"])
+
+        if err != nil {
+            log.Fatalln("Error: ", err)
+        }
+
+        ibp.AddPoint(pt)
+    }
+
+    // Write the batch
+    ic.Write(ibp)
 }
 
 func insertMsg(id string, msg map[string]interface{}) string {
     // Insert Msg in Influx
     // Check if we can insert one message blob as a single datapoint
+    tags := map[string]string{
+        "attribute": "custom",
+    }
+    ic.NewPoint(id + "-msg", tags, msg, time.Now())
 }
 
-func queryTs() {
-    // Query given measurement (datapoint) in Influx
-    // Use some limit - for example 1k results
-    // We need time limmits also - FROM(t=X) and UNTIL(t=y)
+// queryDB convenience function to query the database
+func queryInfluxDb(clnt client.Client, cmd string) (res []client.Result, err error) {
+    q := ic.Query{
+        Command:  cmd,
+        Database: "Mainflux",
+    }
+    if response, err := ic.Query(q); err == nil {
+        if response.Error() != nil {
+            return res, response.Error()
+        }
+        res = response.Results
+    } else {
+        return res, err
+    }
+    return res, nil
 }
-
-func queryMsg() {
-    // Query message blobs
-    // Retrieve for example last 1k messages
-}
-*/
 
 
 /**
@@ -71,18 +111,18 @@ func createChannel(b map[string]interface{}) string {
     }
 
     // Set up defaults and pick up new values from user-provided JSON
-    c := Channel{Id: "Some Id"}
+    c := Channel{Id: "Some Id", Name: "Some Name"}
     json.Unmarshal(j, &c)
 
     // Creating UUID Version 4
     uuid := uuid.NewV4()
     fmt.Println(uuid.String())
 
-    c.Id = uuid.String()
+    d.Id = uuid.String()
 
     // Insert Device
-    erri := mc.dColl.Insert(c)
-	  if erri != nil {
+    erri := mc.dColl.Insert(d)
+	if erri != nil {
         println("CANNOT INSERT")
 		panic(erri)
 	}
@@ -140,7 +180,7 @@ func updateChannel(id string, b map[string]interface{}) string {
     }
 
     colQuerier := bson.M{"id": id}
-	change := bson.M{"$set": b}
+	  change := bson.M{"$set": b}
     err := mc.cColl.Update(colQuerier, change)
     if err != nil {
         log.Print(err)
@@ -161,3 +201,14 @@ func deleteChannel(id string) string {
     return string(`{"status":"deleted"}`)
 }
 
+/**
+ * sendChannel()
+ */
+func sendChannel(b map[string]interface{}) string {
+    err := mc.cColl.Remove(bson.M{"id": id})
+    if err != nil {
+        log.Print(err)
+    }
+
+    return string(`{"status":"deleted"}`)
+}
