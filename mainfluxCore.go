@@ -7,6 +7,7 @@ import(
     "runtime"
     "github.com/nats-io/nats"
     "gopkg.in/mgo.v2"
+    "github.com/influxdata/influxdb/client/v2"
 )
 
 
@@ -50,6 +51,31 @@ func main() {
     mc.session = mgoSession
     mc.dColl = deviceMongo
     mc.cColl = channelMongo
+
+    /**
+     * InfluxDB
+     */
+    // Make client
+    Ic, err := client.NewHTTPClient(client.HTTPConfig{
+        Addr: "http://localhost:8086",
+        Username: username,
+        Password: password,
+    })
+
+    if err != nil {
+        log.Fatalln("Error: ", err)
+    }
+
+    // Create a new point batch
+    Ibp, err := client.NewBatchPoints(client.BatchPointsConfig{
+        Database:  "Mainflux",
+        Precision: "s",
+    })
+
+    if err != nil {
+        log.Fatalln("Error: ", err)
+    }
+
 
     /**
      * NATS
