@@ -4,10 +4,11 @@ import(
     "encoding/json"
     "fmt"
     "log"
+    "time"
 
     "github.com/satori/go.uuid"
     "gopkg.in/mgo.v2/bson"
-    "github.com/xeipuuv/gojsonschema"
+    "github.com/influxdata/influxdb/client/v2"
 )
 
 type SenML struct {
@@ -35,7 +36,9 @@ type Channel struct {
 
 /** == Functions == */
 
-func insertTs(id string, ts SenML) string {
+func insertTs(id string, ts SenML) int {
+    rc := 0
+
     // Insert in SenML in Influx
     // SenML can contain several datapoints
     // and can target different tags
@@ -43,48 +46,53 @@ func insertTs(id string, ts SenML) string {
     // Loop here for each attribute
     for k, v := range ts.E {
         tags := map[string]string{
-            "attribute" : ts.E[k]["n"],
+            "attribute" : ts.E[k]["n"].(string),
         }
 
         // Examine if "v" exists, then "sv", then "bv"
         var field map[string]interface{}
-        if (v["v"]){
-            field["value"] = v["v"]
-        } else if (v["sv"]) {
-            field["value"] = v["sv"]
-        } else if (v["bv"]) {
-            field["value"] = v["bv"]
+        if vv, okv :=v["v"]; okv{
+            field["value"] = vv
+        } else if vsv, oksv := v["sv"]; oksv {
+            field["value"] = vsv
+        } else if vbv, okbv := v["bv"]; okbv {
+            field["value"] = vbv
         }
 
-        pt, err := ic.NewPoint(id + "-ts", tags, field, ts.Bt + v["t"])
+        pt, err := client.NewPoint(id, tags, field, time.Time(ts.Bt + v["t"].(int)))
 
         if err != nil {
             log.Fatalln("Error: ", err)
         }
 
-        ibp.AddPoint(pt)
+        ic.bp.AddPoint(pt)
     }
 
     // Write the batch
-    ic.Write(ibp)
+    ic.c.Write(ic.bp)
+
+    return rc
 }
 
-func insertMsg(id string, msg map[string]interface{}) string {
+func insertMsg(id string, msg map[string]interface{}) int {
+    rc := 0
+
     // Insert Msg in Influx
     // Check if we can insert one message blob as a single datapoint
     tags := map[string]string{
-        "attribute": "custom",
+        "attribute": "msg",
     }
-    ic.NewPoint(id + "-msg", tags, msg, time.Now())
+    client.NewPoint(id, tags, msg, time.Now())
+    return rc
 }
 
 // queryDB convenience function to query the database
 func queryInfluxDb(clnt client.Client, cmd string) (res []client.Result, err error) {
-    q := ic.Query{
+    q := client.Query{
         Command:  cmd,
         Database: "Mainflux",
     }
-    if response, err := ic.Query(q); err == nil {
+    if response, err := ic.c.Query(q); err == nil {
         if response.Error() != nil {
             return res, response.Error()
         }
@@ -111,17 +119,17 @@ func createChannel(b map[string]interface{}) string {
     }
 
     // Set up defaults and pick up new values from user-provided JSON
-    c := Channel{Id: "Some Id", Name: "Some Name"}
+    c := Channel{Id: "Some Id"}
     json.Unmarshal(j, &c)
 
     // Creating UUID Version 4
     uuid := uuid.NewV4()
     fmt.Println(uuid.String())
 
-    d.Id = uuid.String()
+    c.Id = uuid.String()
 
     // Insert Device
-    erri := mc.dColl.Insert(d)
+    erri := mc.dColl.Insert(c)
 	if erri != nil {
         println("CANNOT INSERT")
 		panic(erri)
@@ -204,11 +212,14 @@ func deleteChannel(id string) string {
 /**
  * sendChannel()
  */
-func sendChannel(b map[string]interface{}) string {
-    err := mc.cColl.Remove(bson.M{"id": id})
-    if err != nil {
-        log.Print(err)
+func sendChannel(id string, b map[string]interface{}) string {
+    if m, okm := b["Msg"]; okm {
+        insertMsg(id, m.(map[string]interface{}))
     }
 
-    return string(`{"status":"deleted"}`)
+    if t, okt := b["Ts"]; okt {
+        insertTs(id, t.(SenML))
+    }
+
+    return string(`{"status":"inserted"}`)
 }

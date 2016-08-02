@@ -4,6 +4,7 @@ import(
     "encoding/json"
     "fmt"
     "log"
+    "os"
 
     "github.com/satori/go.uuid"
     "gopkg.in/mgo.v2/bson"
@@ -37,7 +38,9 @@ type Device struct {
 }
 
 func validateJsonSchema(b map[string]interface{}) bool {
-    schemaLoader := gojsonschema.NewReferenceLoader("file:///home/drasko/mainflux/go-mainflux-core-server/schema/deviceSchema.json")
+    pwd, _ := os.Getwd()
+    schemaLoader := gojsonschema.NewReferenceLoader("file://"+ pwd +
+        "/schema/deviceSchema.json")
     bodyLoader := gojsonschema.NewGoLoader(b)
     result, err := gojsonschema.Validate(schemaLoader, bodyLoader)
     if err != nil {

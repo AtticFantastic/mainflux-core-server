@@ -28,6 +28,13 @@ type MongoConn struct {
 
 var mc MongoConn
 
+type InfluxConn struct {
+    c client.Client
+    bp client.BatchPoints
+}
+
+var ic InfluxConn
+
 /**
  * main()
  */
@@ -56,10 +63,10 @@ func main() {
      * InfluxDB
      */
     // Make client
-    Ic, err := client.NewHTTPClient(client.HTTPConfig{
+    icc, err := client.NewHTTPClient(client.HTTPConfig{
         Addr: "http://localhost:8086",
-        Username: username,
-        Password: password,
+        //Username: username,
+        //Password: password,
     })
 
     if err != nil {
@@ -67,7 +74,7 @@ func main() {
     }
 
     // Create a new point batch
-    Ibp, err := client.NewBatchPoints(client.BatchPointsConfig{
+    icbp, err := client.NewBatchPoints(client.BatchPointsConfig{
         Database:  "Mainflux",
         Precision: "s",
     })
@@ -75,6 +82,9 @@ func main() {
     if err != nil {
         log.Fatalln("Error: ", err)
     }
+
+    ic.c = icc
+    ic.bp = icbp
 
 
     /**
