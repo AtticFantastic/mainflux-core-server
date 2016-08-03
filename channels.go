@@ -5,6 +5,7 @@ import(
     "fmt"
     "log"
     "time"
+    "math"
 
     "github.com/satori/go.uuid"
     "gopkg.in/mgo.v2/bson"
@@ -12,7 +13,7 @@ import(
 )
 
 type SenML struct {
-    Bt int `json: "bt"`
+    Bt float64 `json: "bt"`
     Bn string `json: "bn"`
     Bu string `json: "bu"`
     Ver int `json: "ver"`
@@ -51,7 +52,7 @@ func insertTs(id string, ts SenML) int {
 
         // Examine if "v" exists, then "sv", then "bv"
         var field map[string]interface{}
-        if vv, okv :=v["v"]; okv{
+        if vv, okv := v["v"]; okv{
             field["value"] = vv
         } else if vsv, oksv := v["sv"]; oksv {
             field["value"] = vsv
@@ -59,7 +60,50 @@ func insertTs(id string, ts SenML) int {
             field["value"] = vbv
         }
 
-        pt, err := client.NewPoint(id, tags, field, time.Time(ts.Bt + v["t"].(int)))
+        /**
+         * Handle time
+         * 
+         * If either the Base Time or Time value is missing, the missing
+         * attribute is considered to have a value of zero.  The Base Time and
+         * Time values are added together to get the time of measurement.  A
+         * time of zero indicates that the sensor does not know the absolute
+         * time and the measurement was made roughly "now".  A negative value is
+         * used to indicate seconds in the past from roughly "now".  A positive
+         * value is used to indicate the number of seconds, excluding leap
+         * seconds, since the start of the year 1970 in UTC.
+         */
+        // Set time base
+        var tb float64
+        if bt := ts.Bt; bt != 0.0 {
+            // If bt is sent and is different than zero
+            // N.B. if bt was not sent, `ts.Bt` will still be zero, as this is init value
+            tb = bt
+        } else {
+            // If not that means that sensor does not have RTC
+            // and want us to use our NTP - "roughly now"
+            tb = float64(time.Now().Unix())
+        }
+
+        // Set relative time
+        var tr int64
+        if vt, okvt := v["t"]; okvt {
+            // If there is relative time, use it
+            tr = vt.(int64)
+        } else {
+            // Otherwise it is considered as zero
+            tr = 0
+        }
+
+        // Total time
+        tt := tb + float64(tr)
+        // Break into int and fractional nb
+        ts, tsf := math.Modf(tt)
+        // Find nanoseconds number from fractional part
+        tns := tsf * 1000 * 1000
+
+        // Get time in Unix format, based on s and ns
+        t := time.Unix(int64(ts), int64(tns))
+        pt, err := client.NewPoint(id, tags, field, t)
 
         if err != nil {
             log.Fatalln("Error: ", err)
