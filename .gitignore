@@ -42,3 +42,6 @@ tags
 
 # Go sources
 ./src
+
+# Binary
+mainflux-core-server
