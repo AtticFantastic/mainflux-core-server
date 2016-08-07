@@ -3,35 +3,29 @@
 ###
 # Set the base image to Node, onbuild variant: https://registry.hub.docker.com/_/node/
 
-FROM node:4.2.3
+FROM golang:alpine
 MAINTAINER Mainflux
 
-ENV MAINFLUX_CORE_PORT=6969
-
-RUN apt-get update -qq && apt-get install -y build-essential
-
-RUN mkdir /mainflux-core
+ENV MAINFLUX_NATS_PORT=4222
 
 ###
-# Installations
+# Install
 ###
-# Add Gulp globally
 
-RUN npm install -g gulp
-RUN npm install -g nodemon
+RUN apk update && apk add git && rm -rf /var/cache/apk/*
 
-# Finally, install all project Node modules
-COPY . /mainflux-core
-WORKDIR /mainflux-core
-RUN npm install
+# Copy the local package files to the container's workspace.
+ADD . /go/src/github.com/mainflux/mainflux-core-server
 
-EXPOSE $MAINFLUX_CORE_PORT
+# Get and install the dependencies
+RUN go get github.com/mainflux/mainflux-core-server
 
 ###
 # Run main command from entrypoint and parameters in CMD[]
 ###
-
 CMD [""]
 
-# Set default container command
-ENTRYPOINT gulp
+# Run mainflux command by default when the container starts.
+ENTRYPOINT /go/bin/mainflux-core-server
+
+EXPOSE $MAINFLUX_NATS_PORT
