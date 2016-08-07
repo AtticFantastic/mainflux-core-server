@@ -8,6 +8,8 @@ import(
     "github.com/nats-io/nats"
     "gopkg.in/mgo.v2"
     "github.com/influxdata/influxdb/client/v2"
+
+    "github.com/fatih/color"
 )
 
 
@@ -144,12 +146,12 @@ func main() {
         nc.Publish(msg.Reply, []byte(res))
     })
 
-	log.Println("Listening on 'core_in'")
+	  log.Println("Listening on 'core_in'")
 
-    fmt.Println(banner)
+    color.Magenta(banner)
 
     /** Keep mainf() runnig */
-	runtime.Goexit()
+	  runtime.Goexit()
 }
 
 var banner = `
@@ -163,6 +165,9 @@ _|      _|    _|_|_|  _|  _|    _|    _|      _|    _|_|_|  _|    _|
                 == Industrial IoT System ==
        
                 Made with <3 by Mainflux Team
+
 [w] http://mainflux.io
 [t] @mainflux
+
+                     ** CORE SERVER **
 `
