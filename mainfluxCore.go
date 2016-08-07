@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) Mainflux
+ *
+ * Mainflux server is licensed under an Apache license, version 2.0.
+ * All rights not explicitly granted in the Apache license, version 2.0 are reserved.
+ * See the included LICENSE file for more details.
+ */
+
 package main
 
 import(
@@ -5,11 +13,14 @@ import(
     "fmt"
     "log"
     "runtime"
+    "strconv"
+
     "github.com/nats-io/nats"
     "gopkg.in/mgo.v2"
     "github.com/influxdata/influxdb/client/v2"
 
     "github.com/fatih/color"
+    "github.com/spf13/viper"
 )
 
 
@@ -41,10 +52,32 @@ var ic InfluxConn
  * main()
  */
 func main() {
+
+    /**
+     * Config
+     */
+     // Viper setup
+    viper.SetConfigType("yaml") // or viper.SetConfigType("YAML")
+    viper.SetConfigName("config") // name of config file (without extension)
+    viper.AddConfigPath(".")   // path to look for the config file in
+    err := viper.ReadInConfig() // Find and read the config file
+    if err != nil { // Handle errors reading the config file
+        panic(fmt.Errorf("Fatal error config file: %s \n", err))
+    }
+
+    mnghost := viper.GetString("mongo.host")
+    mngport := viper.GetInt("mongo.port")
+    mngdb := viper.GetString("mongo.db")
+    ifxhost := viper.GetString("influx.host")
+    ifxport := viper.GetInt("influx.port")
+    ifxdb := viper.GetString("influx.db")
+    ntshost := viper.GetString("nats.host")
+    ntsport := viper.GetInt("nats.port")
+
     /**
      * MongoDB
      */
-    mgoSession, err := mgo.Dial("localhost")
+     mgoSession, err := mgo.Dial("mongodb://" + mnghost + ":" + strconv.Itoa(mngport))
     if err != nil {
             panic(err)
     }
@@ -53,8 +86,8 @@ func main() {
     // Optional. Switch the session to a monotonic behavior.
     mgoSession.SetMode(mgo.Monotonic, true)
 
-    deviceMongo := mgoSession.DB("test").C("devices")
-    channelMongo := mgoSession.DB("test").C("channels")
+    deviceMongo := mgoSession.DB(mngdb).C("devices")
+    channelMongo := mgoSession.DB(mngdb).C("channels")
 
     /** Set-up globals */
     mc.session = mgoSession
@@ -66,7 +99,7 @@ func main() {
      */
     // Make client
     icc, err := client.NewHTTPClient(client.HTTPConfig{
-        Addr: "http://localhost:8086",
+        Addr: "http://" + ifxhost + ":" + strconv.Itoa(ifxport),
         //Username: username,
         //Password: password,
     })
@@ -77,7 +110,7 @@ func main() {
 
     // Create a new point batch
     icbp, err := client.NewBatchPoints(client.BatchPointsConfig{
-        Database:  "Mainflux",
+        Database:  ifxdb,
         Precision: "s",
     })
 
@@ -92,10 +125,10 @@ func main() {
     /**
      * NATS
      */
-    nc, err := nats.Connect(nats.DefaultURL)
-	if err != nil {
+     nc, err := nats.Connect("nats://" + ntshost + ":" + strconv.Itoa(ntsport))
+	  if err != nil {
         log.Fatalf("Can't connect: %v\n", err)
-	}
+	  }
 
     // Req-Reply
     nc.Subscribe("core_in", func(msg *nats.Msg) {
