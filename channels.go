@@ -172,23 +172,26 @@ func createChannel(b map[string]interface{}) string {
 
     c.Id = uuid.String()
 
+    fmt.Println(c)
+
     // Insert Device
-    erri := mc.dColl.Insert(c)
-	if erri != nil {
+    erri := mc.cColl.Insert(c)
+	  if erri != nil {
         println("CANNOT INSERT")
 		panic(erri)
 	}
 
-    return "Created Device req.deviceId"
+    return "Created Device req.channelId"
 }
 
 /**
  * getChannels()
  */
-func getChannels(id string) string {
+func getChannels() string {
     results := []Channel{}
     err := mc.cColl.Find(nil).All(&results)
     if err != nil {
+        println("ERROR!!!")
         log.Print(err)
     }
 
@@ -204,7 +207,7 @@ func getChannels(id string) string {
  */
 func getChannel(id string) string {
     result := Channel{}
-    err := mc.cColl.Find(bson.M{"Id": id}).One(&result)
+    err := mc.cColl.Find(bson.M{"id": id}).One(&result)
     if err != nil {
         log.Print(err)
     }
@@ -213,6 +216,7 @@ func getChannel(id string) string {
     if err != nil {
         fmt.Println("error:", err)
     }
+    fmt.Println(r)
     return string(r)
 }
 
@@ -257,11 +261,11 @@ func deleteChannel(id string) string {
  * sendChannel()
  */
 func sendChannel(id string, b map[string]interface{}) string {
-    if m, okm := b["Msg"]; okm {
+    if m, okm := b["msg"]; okm {
         insertMsg(id, m.(map[string]interface{}))
     }
 
-    if t, okt := b["Ts"]; okt {
+    if t, okt := b["ts"]; okt {
         insertTs(id, t.(SenML))
     }
 

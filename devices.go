@@ -116,7 +116,7 @@ func getDevices() string {
  */
 func getDevice(id string) string {
     result := Device{}
-    err := mc.dColl.Find(bson.M{"Id": id}).One(&result)
+    err := mc.dColl.Find(bson.M{"id": id}).One(&result)
     if err != nil {
         log.Print(err)
     }

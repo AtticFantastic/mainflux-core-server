@@ -111,8 +111,10 @@ func main() {
 
         var res string
         switch mfMsg.Method {
+            // Status
             case "getStatus":
                 res = getStatus()
+            // Devices
             case "createDevice":
                 res = createDevice(mfMsg.Body)
             case "getDevices":
@@ -123,6 +125,17 @@ func main() {
                 res = updateDevice(mfMsg.Id, mfMsg.Body)
             case "deleteDevice":
                 res = deleteDevice(mfMsg.Id)
+            // Channels
+            case "createChannel":
+                res = createChannel(mfMsg.Body)
+            case "getChannels":
+                res = getChannels()
+            case "getChannel":
+                res = getChannel(mfMsg.Id)
+            case "updateChannel":
+                res = updateChannel(mfMsg.Id, mfMsg.Body)
+            case "deleteChannel":
+                res = deleteChannel(mfMsg.Id)
             default:
                 fmt.Println("error: Unknown method!")
         }
