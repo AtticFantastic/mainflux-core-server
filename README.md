@@ -9,8 +9,8 @@ Mainflux Core Microservice for Mainflux IoT Platform.
 ```
 git clone https://github.com/drasko/go-mainflux-core-server && cd go-mainflux-core-server
 go get
-go build -o mfcore
-./mfcore
+go build
+./mainflux-core-server
 ```
 
 ### Documentation
