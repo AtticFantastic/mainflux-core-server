@@ -15,7 +15,7 @@ go get
 go build
 ./mainflux-core-server
 ```
-### Dependancies
+### Dependencies
 Mainflux Core Server is connected to NATS on northnound interface, and to MongoDB and InfluxDB southbound.
 This is the diagram that describes the architecture
 ![Mainflux Arch](https://github.com/Mainflux/mainflux-doc/blob/master/mermaid/arch.png)
