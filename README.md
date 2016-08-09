@@ -10,7 +10,7 @@ Mainflux Core Microservice for Mainflux IoT Platform.
 ### Usage
 
 ```
-git clone https://github.com/drasko/go-mainflux-core-server && cd go-mainflux-core-server
+git clone https://github.com/Mainflux/mainflux-core-server && cd mainflux-core-server
 go get
 go build
 ./mainflux-core-server
