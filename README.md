@@ -22,7 +22,7 @@ Use [`go`](https://golang.org/cmd/go/) tool to "get" (i.e. fetch and build) `mai
 go get github.com/mainflux/mainflux-core-server
 ```
 
-This will download the code to `$GOPATH/src/github.com/mainflux/mainflux-http-server` directory,
+This will download the code to `$GOPATH/src/github.com/mainflux/mainflux-core-server` directory,
 and then compile it and install the binary in `$GOBIN` directory.
 
 Now you can run the server:
