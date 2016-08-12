@@ -14,6 +14,7 @@ import(
     "log"
     "runtime"
     "strconv"
+    "os"
 
     "github.com/nats-io/nats"
     "gopkg.in/mgo.v2"
@@ -56,10 +57,17 @@ func main() {
     /**
      * Config
      */
-     // Viper setup
+    /** Viper setup */
+    // We can use config.yml from different locations,
+    // depending if we run from
+    cfgDir := os.Getenv("MAINFLUX_CORE_SERVER_CONFIG_DIR")
+    if cfgDir == "" {
+        // default cfg path to source dir, as we keep cfg.yml there
+        cfgDir = os.Getenv("GOPATH") + "/src/github.com/mainflux/mainflux-core-server"
+    }
     viper.SetConfigType("yaml") // or viper.SetConfigType("YAML")
     viper.SetConfigName("config") // name of config file (without extension)
-    viper.AddConfigPath(".")   // path to look for the config file in
+    viper.AddConfigPath(cfgDir)   // path to look for the config file in
     err := viper.ReadInConfig() // Find and read the config file
     if err != nil { // Handle errors reading the config file
         panic(fmt.Errorf("Fatal error config file: %s \n", err))
@@ -125,10 +133,10 @@ func main() {
     /**
      * NATS
      */
-     nc, err := nats.Connect("nats://" + ntshost + ":" + strconv.Itoa(ntsport))
-	  if err != nil {
+    nc, err := nats.Connect("nats://" + ntshost + ":" + strconv.Itoa(ntsport))
+    if err != nil {
         log.Fatalf("Can't connect: %v\n", err)
-	  }
+    }
 
     // Req-Reply
     nc.Subscribe("core_in", func(msg *nats.Msg) {
@@ -179,12 +187,12 @@ func main() {
         nc.Publish(msg.Reply, []byte(res))
     })
 
-	  log.Println("Listening on 'core_in'")
+    log.Println("Listening on 'core_in'")
 
     color.Magenta(banner)
 
     /** Keep mainf() runnig */
-	  runtime.Goexit()
+    runtime.Goexit()
 }
 
 var banner = `

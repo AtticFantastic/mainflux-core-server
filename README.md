@@ -7,13 +7,39 @@
 
 Mainflux Core Microservice for Mainflux IoT Platform.
 
-### Usage
+### Installation
+#### Prerequisite
+If not set already, please set your `GOPATH` and `GOBIN` environment variables. For example:
+```bash
+mkdir -p ~/go
+export GOPATH=~/go
+export GOBIN=$GOPATH/bin
+```
 
+#### Get the code
+Use [`go`](https://golang.org/cmd/go/) tool to "get" (i.e. fetch and build) `mainflux-core-server` package:
+```bash
+go get github.com/mainflux/mainflux-core-server
+```
+
+This will download the code to `$GOPATH/src/github.com/mainflux/mainflux-http-server` directory,
+and then compile it and install the binary in `$GOBIN` directory.
+
+Now you can run the server:
+```bash
+$GOBIN/mainflux-core-server
+```
+
+Please note that the binary `mainflux-core-server` expects to find configuration file `config.yml` in
+direcotry provided by `MAINFLUX_CORE_SERVER_CONFIG_DIR` if this variable is set. Otherwise it looks for `config.yml`
+in `$GOPATH/src/github.com/mainflux/mainflux-core-server`.
+
+Note also that using `go get` is prefered than out-of-gopath code fetch by cloning the git repo like this:
 ```
 git clone https://github.com/Mainflux/mainflux-core-server && cd mainflux-core-server
 go get
 go build
-./mainflux-core-server
+MAINFLUX_CORE_SERVER_CONFIG_DIR=. ./mainflux-core-server
 ```
 ### Dependencies
 Mainflux Core Server is connected to `NATS` on northbound interface, and to `MongoDB` and `InfluxDB` southbound.
