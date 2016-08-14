@@ -69,13 +69,16 @@ This is why to run Mainflux Core Server you have to have running:
 - [MongoDB](https://github.com/mongodb/mongo)
 - [InfluxDB](https://github.com/influxdata/influxdb)
 
-Installation and start of these services should be done adequate to the operating system in use (e.g. for Debian you can use `apt-get` to fetch and install these), so you must follow that instructions on each of the project pages.
+Installation and start of these services depends the operating system running on host (e.g. for Debian you can use `apt-get` to fetch and install these), so you must follow the installation instructions for each of the project.
 
-However, each of these projects provide Docker image which can be pulled from DockerHub and started in a separate container:
+However, each of these projects provides an official Docker image which can be pulled from DockerHub and started in a separate container (each in separate terminal if not detached):
 ```bash
 docker run -p 4222:4222 -it apcera/gnatsd
 docker run -p 27017:27017 -it mongo
 docker run -p 8086:8086 -it influxdb
+```
+Now you can run `mainflux-core-server`:
+```bash
 MAINFLUX_CORE_SERVER_CONFIG_DIR=. ./mainflux-core-server
 ```
 
