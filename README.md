@@ -82,7 +82,7 @@ Now you can run `mainflux-core-server`:
 MAINFLUX_CORE_SERVER_CONFIG_DIR=. ./mainflux-core-server
 ```
 
-Note that when running services in this way (weather they are installed in the localhost system or run and mapped on localhost ports) you will need to change [config.yml](config.yml) and replace `influx`, `mongo` and `nats` hostnames by `localhost`
+Note that when running services in this way (weather they are installed in the localhost system or run and mapped on localhost ports) you will need to change [`config.yml`](config.yml) and replace `influx`, `mongo` and `nats` hostnames by `localhost`
 
 ### Documentation
 Development documentation can be found on our [Mainflux GitHub Wiki](https://github.com/Mainflux/mainflux/wiki).
