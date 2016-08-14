@@ -8,7 +8,23 @@
 Mainflux Core Microservice for Mainflux IoT Platform.
 
 ### Installation
-#### Prerequisite
+#### Docker
+```bash
+# NATS prerequisite
+docker pull apcera/gnatsd
+docker run --name=nats -it apcera/gnatsd
+# Influx prerequisite
+docker pull influx
+docker run --name influx -it influx
+# MongoDB prerequisite
+docker pull mongo
+docker run --name mongo -it mongo
+# Mainflux HTTP Server
+docker pull mainflux/mainflux-core-server
+docker run -p 7070:7070 --link=nats:nats --link=mongo:mongo --link=influx:influx -it mainflux/mainflux-core-server
+```
+#### Code
+##### Prerequisite
 If not set already, please set your `GOPATH` and `GOBIN` environment variables. For example:
 ```bash
 mkdir -p ~/go
@@ -41,7 +57,7 @@ go get
 go build
 MAINFLUX_CORE_SERVER_CONFIG_DIR=. ./mainflux-core-server
 ```
-### Dependencies
+#### Dependencies
 Mainflux Core Server is connected to `NATS` on northbound interface, and to `MongoDB` and `InfluxDB` southbound.
 
 Following diagram illustrates the architecture:
@@ -51,6 +67,29 @@ This is why to run Mainflux Core Server you have to have running:
 - [NATS](https://github.com/nats-io/gnatsd)
 - [MongoDB](https://github.com/mongodb/mongo)
 - [InfluxDB](https://github.com/influxdata/influxdb)
+
+This can be obtained either by fetching and compiling `NATS` source:
+```bash
+go get github.com/nats-io/gnatsd
+$GOBIN/gnatsd
+```
+or pulling the [official `NATS` Docker container](https://hub.docker.com/r/apcera/gnatsd/)
+```
+docker pull apcera/gnatsd
+docker run -p 4222:4222 -it apcera/gnatsd
+```
+> N.B. If you used official Mainflux
+> [`docker-compose.yml`](https://github.com/Mainflux/mainflux/blob/master/docker-compose.yml) to
+> fetch the images and run the composition, then `NATS` image is already downloaded on your host and `mainflux-nats`
+> container is already created. In that case all you have to run is `docker start mainflux-nats`
+
+`NATS` config can be customized in [config.yml](config.yml).
+
+> N.B. `NATS` host name in the `config.yml` is defined as `nats`,
+> which corresponds to the name of the service in [`docker-compose.yml`](https://github.com/Mainflux/mainflux/blob/master/docker-compose.yml).
+> If you are running `mainflux-http-server` locally (and not via `docker-compose`), then you must change
+> NATS hostname to `localhost` - this will work weather you are running `NATS` as a `gnatsd` compiled from source
+> or as a `docker run mainflux-nats`
 
 ### Documentation
 Development documentation can be found on our [Mainflux GitHub Wiki](https://github.com/Mainflux/mainflux/wiki).
