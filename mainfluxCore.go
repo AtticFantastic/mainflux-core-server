@@ -16,6 +16,11 @@ import(
     "strconv"
     "os"
 
+    "github.com/mainflux/mainflux-core-server/config"
+    "github.com/mainflux/mainflux-core-server/db"
+    "github.com/mainflux/mainflux-core-server/controllers"
+    "github.com/mainflux/mainflux-core-server/broker"
+
     "github.com/nats-io/nats"
     "gopkg.in/mgo.v2"
     "github.com/influxdata/influxdb/client/v2"
@@ -31,115 +36,29 @@ type MainfluxMessage struct {
     Body map[string]interface{} `json: "body"`
 }
 
-/**
- * MongoDB Globals
- */
-type MongoConn struct {
-    session *mgo.Session
-    dColl *mgo.Collection
-    cColl *mgo.Collection
-}
-
-var mc MongoConn
-
-type InfluxConn struct {
-    c client.Client
-    bp client.BatchPoints
-}
-
-var ic InfluxConn
 
 /**
  * main()
  */
 func main() {
 
-    /**
-     * Config
-     */
-    /** Viper setup */
-    // We can use config.yml from different locations,
-    // depending if we run from
-    cfgDir := os.Getenv("MAINFLUX_CORE_SERVER_CONFIG_DIR")
-    if cfgDir == "" {
-        // default cfg path to source dir, as we keep cfg.yml there
-        cfgDir = os.Getenv("GOPATH") + "/src/github.com/mainflux/mainflux-core-server"
-    }
-    viper.SetConfigType("yaml") // or viper.SetConfigType("YAML")
-    viper.SetConfigName("config") // name of config file (without extension)
-    viper.AddConfigPath(cfgDir)   // path to look for the config file in
-    err := viper.ReadInConfig() // Find and read the config file
-    if err != nil { // Handle errors reading the config file
-        panic(fmt.Errorf("Fatal error config file: %s \n", err))
-    }
+    // Parse config
+    var cfg config.Config
+    cfg.Parse()
 
-    mnghost := viper.GetString("mongo.host")
-    mngport := viper.GetInt("mongo.port")
-    mngdb := viper.GetString("mongo.db")
-    ifxhost := viper.GetString("influx.host")
-    ifxport := viper.GetInt("influx.port")
-    ifxdb := viper.GetString("influx.db")
-    ntshost := viper.GetString("nats.host")
-    ntsport := viper.GetInt("nats.port")
+    // MongoDb
+    db.initMongo(cfg.MongoHost, cfg.MongoPort, cfg.MongoDatabase)
+    Mdb := db.MgoDb{}
+	  Mdb.Init()
 
-    /**
-     * MongoDB
-     */
-     mgoSession, err := mgo.Dial("mongodb://" + mnghost + ":" + strconv.Itoa(mngport))
-    if err != nil {
-            panic(err)
-    }
-    //defer mgoSession.Close()
+    // InfluxDb
+    db.initInflux(cfg.InfluxHost, cfg.InfluxPort, cfg.InfluxDatabase)
 
-    // Optional. Switch the session to a monotonic behavior.
-    mgoSession.SetMode(mgo.Monotonic, true)
-
-    deviceMongo := mgoSession.DB(mngdb).C("devices")
-    channelMongo := mgoSession.DB(mngdb).C("channels")
-
-    /** Set-up globals */
-    mc.session = mgoSession
-    mc.dColl = deviceMongo
-    mc.cColl = channelMongo
-
-    /**
-     * InfluxDB
-     */
-    // Make client
-    icc, err := client.NewHTTPClient(client.HTTPConfig{
-        Addr: "http://" + ifxhost + ":" + strconv.Itoa(ifxport),
-        //Username: username,
-        //Password: password,
-    })
-
-    if err != nil {
-        log.Fatalln("Error: ", err)
-    }
-
-    // Create a new point batch
-    icbp, err := client.NewBatchPoints(client.BatchPointsConfig{
-        Database:  ifxdb,
-        Precision: "s",
-    })
-
-    if err != nil {
-        log.Fatalln("Error: ", err)
-    }
-
-    ic.c = icc
-    ic.bp = icbp
-
-
-    /**
-     * NATS
-     */
-    nc, err := nats.Connect("nats://" + ntshost + ":" + strconv.Itoa(ntsport))
-    if err != nil {
-        log.Fatalf("Can't connect: %v\n", err)
-    }
+    // NATS
+    broker.init(cfg.NatsHost, cfg.NatsPort)
 
     // Req-Reply
-    nc.Subscribe("core_in", func(msg *nats.Msg) {
+    broker.NatsConn.Subscribe("core_in", func(msg *nats.Msg) {
         var mfMsg MainfluxMessage
 
         log.Println(msg.Subject, string(msg.Data))
@@ -184,7 +103,7 @@ func main() {
         }
 
         fmt.Println(res)
-        nc.Publish(msg.Reply, []byte(res))
+        broker.NatsConn.Publish(msg.Reply, []byte(res))
     })
 
     log.Println("Listening on 'core_in'")
