@@ -9,6 +9,7 @@
 package db
 
 import (
+    "strconv"
 	  "gopkg.in/mgo.v2"
 )
 
@@ -25,9 +26,9 @@ type MgoDb struct {
 	  Col     *mgo.Collection
 }
 
-func initMongo(host string, port int, db string) error {
+func InitMongo(host string, port int, db string) error {
+		var err error
 	  if mainSession == nil {
-		    var err error
 		    mainSession, err = mgo.Dial("mongodb://" + host + ":" + strconv.Itoa(port))
 
 		    if err != nil {

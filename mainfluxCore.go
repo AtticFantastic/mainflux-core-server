@@ -13,20 +13,15 @@ import(
     "fmt"
     "log"
     "runtime"
-    "strconv"
-    "os"
 
     "github.com/mainflux/mainflux-core-server/config"
     "github.com/mainflux/mainflux-core-server/db"
-    "github.com/mainflux/mainflux-core-server/controllers"
+    ctrl "github.com/mainflux/mainflux-core-server/controllers"
     "github.com/mainflux/mainflux-core-server/broker"
 
     "github.com/nats-io/nats"
-    "gopkg.in/mgo.v2"
-    "github.com/influxdata/influxdb/client/v2"
 
     "github.com/fatih/color"
-    "github.com/spf13/viper"
 )
 
 
@@ -47,15 +42,13 @@ func main() {
     cfg.Parse()
 
     // MongoDb
-    db.initMongo(cfg.MongoHost, cfg.MongoPort, cfg.MongoDatabase)
-    Mdb := db.MgoDb{}
-	  Mdb.Init()
+    db.InitMongo(cfg.MongoHost, cfg.MongoPort, cfg.MongoDatabase)
 
     // InfluxDb
-    db.initInflux(cfg.InfluxHost, cfg.InfluxPort, cfg.InfluxDatabase)
+    db.InitInflux(cfg.InfluxHost, cfg.InfluxPort, cfg.InfluxDatabase)
 
     // NATS
-    broker.init(cfg.NatsHost, cfg.NatsPort)
+    broker.InitNats(cfg.NatsHost, cfg.NatsPort)
 
     // Req-Reply
     broker.NatsConn.Subscribe("core_in", func(msg *nats.Msg) {
@@ -75,29 +68,29 @@ func main() {
         switch mfMsg.Method {
             // Status
             case "getStatus":
-                res = getStatus()
+                res =  ctrl.GetStatus()
             // Devices
             case "createDevice":
-                res = createDevice(mfMsg.Body)
+                res = ctrl.CreateDevice(mfMsg.Body)
             case "getDevices":
-                res = getDevices()
+                res = ctrl.GetDevices()
             case "getDevice":
-                res = getDevice(mfMsg.Id)
+                res = ctrl.GetDevice(mfMsg.Id)
             case "updateDevice":
-                res = updateDevice(mfMsg.Id, mfMsg.Body)
+                res = ctrl.UpdateDevice(mfMsg.Id, mfMsg.Body)
             case "deleteDevice":
-                res = deleteDevice(mfMsg.Id)
+                res = ctrl.DeleteDevice(mfMsg.Id)
             // Channels
             case "createChannel":
-                res = createChannel(mfMsg.Body)
+                res = ctrl.CreateChannel(mfMsg.Body)
             case "getChannels":
-                res = getChannels()
+                res = ctrl.GetChannels()
             case "getChannel":
-                res = getChannel(mfMsg.Id)
+                res = ctrl.GetChannel(mfMsg.Id)
             case "updateChannel":
-                res = updateChannel(mfMsg.Id, mfMsg.Body)
+                res = ctrl.UpdateChannel(mfMsg.Id, mfMsg.Body)
             case "deleteChannel":
-                res = deleteChannel(mfMsg.Id)
+                res = ctrl.DeleteChannel(mfMsg.Id)
             default:
                 fmt.Println("error: Unknown method!")
         }

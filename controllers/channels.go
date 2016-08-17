@@ -15,6 +15,9 @@ import(
     "time"
     "math"
 
+    "github.com/mainflux/mainflux-core-server/models"
+    "github.com/mainflux/mainflux-core-server/db"
+
     "github.com/satori/go.uuid"
     "gopkg.in/mgo.v2/bson"
     "github.com/influxdata/influxdb/client/v2"
@@ -23,7 +26,7 @@ import(
 
 /** == Functions == */
 
-func insertTs(id string, ts SenML) int {
+func insertTs(id string, ts models.SenML) int {
     rc := 0
 
     // Insert in SenML in Influx
@@ -95,11 +98,11 @@ func insertTs(id string, ts SenML) int {
             log.Fatalln("Error: ", err)
         }
 
-        ic.bp.AddPoint(pt)
+        db.IfxConn.Bp.AddPoint(pt)
     }
 
     // Write the batch
-    ic.c.Write(ic.bp)
+    db.IfxConn.C.Write(db.IfxConn.Bp)
 
     return rc
 }
@@ -116,13 +119,13 @@ func insertMsg(id string, msg map[string]interface{}) int {
     return rc
 }
 
-// queryDB convenience function to query the database
+// QueryDB convenience function to query the database
 func queryInfluxDb(clnt client.Client, cmd string) (res []client.Result, err error) {
     q := client.Query{
         Command:  cmd,
         Database: "Mainflux",
     }
-    if response, err := ic.c.Query(q); err == nil {
+    if response, err := db.IfxConn.C.Query(q); err == nil {
         if response.Error() != nil {
             return res, response.Error()
         }
@@ -135,33 +138,40 @@ func queryInfluxDb(clnt client.Client, cmd string) (res []client.Result, err err
 
 
 /**
- * createChannel ()
+ * CreateChannel ()
  */
-func createChannel(b map[string]interface{}) string {
-    if validateJsonSchema(b) != true {
+func CreateChannel(req map[string]interface{}) string {
+    if validateJsonSchema(req) != true {
         println("Invalid schema")
     }
 
+    // Init new Mongo session
+    // and get the "devices" collection
+    // from this new session
+    Db := db.MgoDb{}
+	  Db.Init()
+    defer Db.Close()
+
     // Turn map into a JSON to put it in the Device struct later
-    j, err := json.Marshal(&b)
+    j, err := json.Marshal(&req)
     if err != nil {
         fmt.Println(err)
     }
 
     // Set up defaults and pick up new values from user-provided JSON
-    c := Channel{Id: "Some Id"}
-    json.Unmarshal(j, &c)
+    channel := models.Channel{Id: "Some Id"}
+    json.Unmarshal(j, &channel)
 
     // Creating UUID Version 4
     uuid := uuid.NewV4()
     fmt.Println(uuid.String())
 
-    c.Id = uuid.String()
+    channel.Id = uuid.String()
 
-    fmt.Println(c)
+    fmt.Println(channel)
 
     // Insert Device
-    erri := mc.cColl.Insert(c)
+    erri := Db.C("channels").Insert(channel)
 	  if erri != nil {
         println("CANNOT INSERT")
 		panic(erri)
@@ -171,59 +181,71 @@ func createChannel(b map[string]interface{}) string {
 }
 
 /**
- * getChannels()
+ * GetChannels()
  */
-func getChannels() string {
-    results := []Channel{}
-    err := mc.cColl.Find(nil).All(&results)
+func GetChannels() string {
+    Db := db.MgoDb{}
+	  Db.Init()
+    defer Db.Close()
+
+    results := []models.Channel{}
+    err := Db.C("channels").Find(nil).All(&results)
     if err != nil {
         println("ERROR!!!")
         log.Print(err)
     }
 
-    r, err := json.Marshal(results)
+    res, err := json.Marshal(results)
     if err != nil {
         fmt.Println("error:", err)
     }
-    return string(r)
+    return string(res)
 }
 
 /**
- * getChannel()
+ * GetChannel()
  */
-func getChannel(id string) string {
-    result := Channel{}
-    err := mc.cColl.Find(bson.M{"id": id}).One(&result)
+func GetChannel(id string) string {
+    Db := db.MgoDb{}
+	  Db.Init()
+    defer Db.Close()
+
+    result := models.Channel{}
+    err := Db.C("channels").Find(bson.M{"id": id}).One(&result)
     if err != nil {
         log.Print(err)
     }
 
-    r, err := json.Marshal(result)
+    res, err := json.Marshal(result)
     if err != nil {
         fmt.Println("error:", err)
     }
-    fmt.Println(r)
-    return string(r)
+    fmt.Println(res)
+    return string(res)
 }
 
 /**
- * updateChannel()
+ * UpdateChannel()
  */
-func updateChannel(id string, b map[string]interface{}) string {
+func UpdateChannel(id string, req map[string]interface{}) string {
     // Validate JSON schema user provided
-    if validateJsonSchema(b) != true {
+    if validateJsonSchema(req) != true {
         println("Invalid schema")
     }
 
+    Db := db.MgoDb{}
+	  Db.Init()
+    defer Db.Close()
+
     // Check if someone is trying to change "id" key
     // and protect us from this
-    if _, ok := b["id"]; ok {
+    if _, ok := req["id"]; ok {
         println("Error: can not change device ID")
     }
 
     colQuerier := bson.M{"id": id}
-	  change := bson.M{"$set": b}
-    err := mc.cColl.Update(colQuerier, change)
+	  change := bson.M{"$set": req}
+    err := Db.C("channels").Update(colQuerier, change)
     if err != nil {
         log.Print(err)
     }
@@ -232,10 +254,14 @@ func updateChannel(id string, b map[string]interface{}) string {
 }
 
 /**
- * deleteChannel()
+ * DeleteChannel()
  */
-func deleteChannel(id string) string {
-    err := mc.cColl.Remove(bson.M{"id": id})
+func DeleteChannel(id string) string {
+    Db := db.MgoDb{}
+	  Db.Init()
+    defer Db.Close()
+
+    err := Db.C("channels").Remove(bson.M{"id": id})
     if err != nil {
         log.Print(err)
     }
@@ -244,15 +270,15 @@ func deleteChannel(id string) string {
 }
 
 /**
- * sendChannel()
+ * SendChannel()
  */
-func sendChannel(id string, b map[string]interface{}) string {
-    if m, okm := b["msg"]; okm {
+func SendChannel(id string, req map[string]interface{}) string {
+    if m, ok := req["msg"]; ok {
         insertMsg(id, m.(map[string]interface{}))
     }
 
-    if t, okt := b["ts"]; okt {
-        insertTs(id, t.(SenML))
+    if t, ok := req["ts"]; ok {
+        insertTs(id, t.(models.SenML))
     }
 
     return string(`{"status":"inserted"}`)

@@ -18,7 +18,7 @@ var (
     NatsConn *nats.Conn
 )
 
-func init(host string, port int) error {
+func InitNats(host string, port int) error {
     /** Connect to NATS broker */
     var err error
     NatsConn, err = nats.Connect("nats://" + host + ":" + strconv.Itoa(port))

@@ -14,6 +14,9 @@ import(
     "log"
     "os"
 
+    "github.com/mainflux/mainflux-core-server/models"
+    "github.com/mainflux/mainflux-core-server/db"
+
     "github.com/satori/go.uuid"
     "gopkg.in/mgo.v2/bson"
     "github.com/xeipuuv/gojsonschema"
@@ -22,7 +25,7 @@ import(
 func validateJsonSchema(b map[string]interface{}) bool {
     pwd, _ := os.Getwd()
     schemaLoader := gojsonschema.NewReferenceLoader("file://"+ pwd +
-        "/schema/deviceSchema.json")
+        "/models/deviceSchema.json")
     bodyLoader := gojsonschema.NewGoLoader(b)
     result, err := gojsonschema.Validate(schemaLoader, bodyLoader)
     if err != nil {
@@ -43,12 +46,19 @@ func validateJsonSchema(b map[string]interface{}) bool {
 
 /** == Functions == */
 /**
- * createDevice ()
+ * CreateDevice ()
  */
-func createDevice(b map[string]interface{}) string {
+func CreateDevice(b map[string]interface{}) string {
     if validateJsonSchema(b) != true {
         println("Invalid schema")
     }
+
+    // Init new Mongo session
+    // and get the "devices" collection
+    // from this new session
+    Db := db.MgoDb{}
+	  Db.Init()
+    defer Db.Close()
 
     // Turn map into a JSON to put it in the Device struct later
     j, err := json.Marshal(&b)
@@ -57,7 +67,7 @@ func createDevice(b map[string]interface{}) string {
     }
 
     // Set up defaults and pick up new values from user-provided JSON
-    d := Device{Id: "Some Id", Name: "Some Name"}
+    d := models.Device{Id: "Some Id", Name: "Some Name"}
     json.Unmarshal(j, &d)
 
     // Creating UUID Version 4
@@ -67,7 +77,7 @@ func createDevice(b map[string]interface{}) string {
     d.Id = uuid.String()
 
     // Insert Device
-    erri := mc.dColl.Insert(d)
+    erri := Db.C("devices").Insert(d)
 	if erri != nil {
         println("CANNOT INSERT")
 		panic(erri)
@@ -77,11 +87,15 @@ func createDevice(b map[string]interface{}) string {
 }
 
 /**
- * getDevices()
+ * GetDevices()
  */
-func getDevices() string {
-    results := []Device{}
-    err := mc.dColl.Find(nil).All(&results)
+func GetDevices() string {
+    Db := db.MgoDb{}
+	  Db.Init()
+    defer Db.Close()
+
+    results := []models.Device{}
+    err := Db.C("devices").Find(nil).All(&results)
     if err != nil {
         log.Print(err)
     }
@@ -94,11 +108,15 @@ func getDevices() string {
 }
 
 /**
- * getDevice()
+ * GetDevice()
  */
-func getDevice(id string) string {
-    result := Device{}
-    err := mc.dColl.Find(bson.M{"id": id}).One(&result)
+func GetDevice(id string) string {
+    Db := db.MgoDb{}
+	  Db.Init()
+    defer Db.Close()
+
+    result := models.Device{}
+    err := Db.C("devices").Find(bson.M{"id": id}).One(&result)
     if err != nil {
         log.Print(err)
     }
@@ -111,9 +129,13 @@ func getDevice(id string) string {
 }
 
 /**
- * updateDevice()
+ * UpdateDevice()
  */
-func updateDevice(id string, b map[string]interface{}) string {
+func UpdateDevice(id string, b map[string]interface{}) string {
+    Db := db.MgoDb{}
+	  Db.Init()
+    defer Db.Close()
+
     // Validate JSON schema user provided
     if validateJsonSchema(b) != true {
         println("Invalid schema")
@@ -126,8 +148,8 @@ func updateDevice(id string, b map[string]interface{}) string {
     }
 
     colQuerier := bson.M{"id": id}
-	change := bson.M{"$set": b}
-    err := mc.dColl.Update(colQuerier, change)
+    change := bson.M{"$set": b}
+    err := Db.C("devices").Update(colQuerier, change)
     if err != nil {
         log.Print(err)
     }
@@ -136,10 +158,14 @@ func updateDevice(id string, b map[string]interface{}) string {
 }
 
 /**
- * deleteDevice()
+ * DeleteDevice()
  */
-func deleteDevice(id string) string {
-    err := mc.dColl.Remove(bson.M{"id": id})
+func DeleteDevice(id string) string {
+    Db := db.MgoDb{}
+	  Db.Init()
+    defer Db.Close()
+
+    err := Db.C("devices").Remove(bson.M{"id": id})
     if err != nil {
         log.Print(err)
     }

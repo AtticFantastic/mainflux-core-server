@@ -19,12 +19,12 @@ type Config struct {
     // Mongo
     MongoHost string
     MongoPort int
-    MongoDatabase int
+    MongoDatabase string
 
     // Influx
     InfluxHost string
     InfluxPort int
-    InfluxDatabase int
+    InfluxDatabase string
 
     // NATS
     NatsHost string

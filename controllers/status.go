@@ -17,7 +17,7 @@ import(
 /**
  * getStatus()
  */
-func getStatus() string {
+func GetStatus() string {
     fmt.Println("Status OK")
     return string(`{"status":"OK"}`)
 }

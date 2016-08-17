@@ -6,6 +6,14 @@
  * See the included LICENSE file for more details.
  */
 
+package db
+
+import(
+    "log"
+    "strconv"
+    "github.com/influxdata/influxdb/client/v2"
+)
+
 type InfluxConn struct {
     C client.Client
     Bp client.BatchPoints
@@ -13,7 +21,7 @@ type InfluxConn struct {
 
 var IfxConn InfluxConn
 
-func initInflux(host string, port int, db string) error {
+func InitInflux(host string, port int, db string) error {
     // Make client
     icc, err := client.NewHTTPClient(client.HTTPConfig{
         Addr: "http://" + host + ":" + strconv.Itoa(port),
@@ -39,4 +47,6 @@ func initInflux(host string, port int, db string) error {
     }
 
     IfxConn.Bp = icbp
+
+    return err
 }
