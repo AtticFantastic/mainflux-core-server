@@ -10,7 +10,7 @@
 # MongoDB
 ###
 mongo:
-  host: "localhost"
+  host: "mongo"
   port: 27017
   db: "mainflux"
 
@@ -18,7 +18,7 @@ mongo:
 # InfluxDB
 ###
 influx:
-  host: "localhost"
+  host: "influx"
   port: 8086
   db: "mainflux"
 
@@ -26,5 +26,5 @@ influx:
 # NATS
 ###
 nats:
-  host: "localhost"
+  host: "nats"
   port: 4222
