@@ -9,23 +9,22 @@
 package broker
 
 import (
-    "strconv"
-    "log"
-    "github.com/nats-io/nats"
+	"github.com/nats-io/nats"
+	"log"
+	"strconv"
 )
 
 var (
-    NatsConn *nats.Conn
+	NatsConn *nats.Conn
 )
 
 func InitNats(host string, port int) error {
-    /** Connect to NATS broker */
-    var err error
-    NatsConn, err = nats.Connect("nats://" + host + ":" + strconv.Itoa(port))
-    if err != nil {
-        log.Fatalf("NATS: Can't connect: %v\n", err)
-    }
+	/** Connect to NATS broker */
+	var err error
+	NatsConn, err = nats.Connect("nats://" + host + ":" + strconv.Itoa(port))
+	if err != nil {
+		log.Fatalf("NATS: Can't connect: %v\n", err)
+	}
 
-    return err
+	return err
 }
-

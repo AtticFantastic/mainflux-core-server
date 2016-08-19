@@ -7,10 +7,9 @@
  */
 package controllers
 
-import(
-    "fmt"
+import (
+	"fmt"
 )
-
 
 /** == Functions == */
 
@@ -18,6 +17,6 @@ import(
  * getStatus()
  */
 func GetStatus() string {
-    fmt.Println("Status OK")
-    return string(`{"status":"OK"}`)
+	fmt.Println("Status OK")
+	return string(`{"status":"OK"}`)
 }
