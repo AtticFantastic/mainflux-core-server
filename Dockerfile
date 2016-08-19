@@ -26,5 +26,5 @@ RUN go get github.com/mainflux/mainflux-core-server
 CMD ["/config/core/config.yml"]
 
 # Run mainflux command by default when the container starts.
-ENTRYPOINT /go/bin/mainflux-core-server
+ENTRYPOINT ["/go/bin/mainflux-core-server"]
 
